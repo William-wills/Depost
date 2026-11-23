@@ -1,0 +1,95 @@
+app:
+  # Placeholder app ID. Replace with the ARI printed by `forge register`/`forge create`.
+  id: "ari:cloud:ecosystem::app/00000000-0000-4000-8000-000000000000"
+  name: DevPulse Agent
+  runtime:
+    name: nodejs24.x
+
+resources:
+  # UI Kit v10+ points at the TSX entry point directly. The key "main" is the
+  # "entryPoint" used by the issue panel below.
+  - key: main
+    path: src/frontend/index.tsx
+
+modules:
+  jira:issuePanel:
+    - key: devpulse-issue-panel
+      title: DevPulse Security & Context
+      resource: main
+      render: native
+      resolver:
+        function: devpulse-ui-resolver
+      icon: https://developer.atlassian.com/platform/forge/images/icons/issue-panel-icon.svg
+
+  rovo:agent:
+    - key: devpulse-rovo-agent
+      name: DevPulse Sentinel
+      description: Scans pull requests, checks security patterns, and links Jira contextual data.
+      prompt: |
+        You are DevPulse Sentinel, a security-focused teammate for software teams.
+        Scan pull request diffs for hardcoded secrets and missing tests, then connect
+        the findings to the Jira issue the user is working on.
+        Always use the devpulse-scan-action to retrieve a report instead of guessing.
+        Present a short risk score (0-100), a risk level, the failing checklist items,
+        and any related Jira issues. Never claim a scan succeeded if the action fails.
+      conversationStarters:
+        - Scan the current pull request for security risks
+        - Summarize the DevPulse risk for this issue
+        - Which checklist items are failing?
+      actions:
+        - devpulse-scan-action
+
+  # Required so the Rovo agent has an executable capability to call.
+  action:
+    - key: devpulse-scan-action
+      name: Scan pull request with DevPulse
+      function: rovo-action-resolver
+      actionVerb: GET
+      description: >
+        Analyze a pull request diff for hardcoded secrets, missing tests and debug
+        statements, and return a risk report enriched with Jira issue context.
+      inputs:
+        issueKey:
+          title: Jira issue key
+          type: string
+          required: false
+          description: The Jira issue linked to the pull request, for example ABC-123.
+        diff:
+          title: Unified diff
+          type: string
+          required: false
+          description: Optional unified diff text. A mock diff is used when omitted.
+        workspace:
+          title: Bitbucket workspace
+          type: string
+          required: false
+          description: Bitbucket workspace slug that owns the repository.
+        repoSlug:
+          title: Repository slug
+          type: string
+          required: false
+          description: Bitbucket repository slug.
+        pullRequestId:
+          title: Pull request ID
+          type: integer
+          required: false
+          description: Numeric ID of the pull request to scan.
+
+  function:
+    # Entry point required by the brief: index.runRovoAction.
+    - key: rovo-action-resolver
+      handler: index.runRovoAction
+    # Separate resolver for the UI Kit issue panel (invoke() calls).
+    - key: devpulse-ui-resolver
+      handler: index.resolverHandler
+
+permissions:
+  scopes:
+    - read:jira-work
+    - write:jira-work
+    # Correct Forge equivalents of the requested scopes:
+    # - read:code:bitbucket      -> read:repository:bitbucket (+ pull request read)
+    # - read:confluence-content:summary -> read:confluence-content.summary
+    - read:repository:bitbucket
+    - read:pullrequest:bitbucket
+    - read:confluence-content.summary

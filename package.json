@@ -1,0 +1,26 @@
+{
+  "name": "devpulse-agent",
+  "version": "0.1.0",
+  "private": true,
+  "description": "DevPulse Agent - security and Jira context for Codegeist 2026",
+  "scripts": {
+    "build": "forge build",
+    "deploy": "forge deploy",
+    "install": "forge install",
+    "tunnel": "forge tunnel",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@forge/api": "latest",
+    "@forge/bridge": "latest",
+    "@forge/react": "latest",
+    "@forge/resolver": "latest",
+    "react": "^18.3.1"
+  },
+  "devDependencies": {
+    "@forge/cli": "latest",
+    "@types/node": "^22.10.0",
+    "@types/react": "^18.3.12",
+    "typescript": "^5.7.2"
+  }
+}
